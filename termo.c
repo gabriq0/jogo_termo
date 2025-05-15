@@ -7,35 +7,45 @@
 #include <conio.h>
 #include <windows.h>
 
-int parada = 0;
 #define tamPalavra 6
 #define totalPalavras 30
+int gameLoop = 0;
 
 void cores(){
     //eu usei um define para ficar mais fácil de chamar essa função no código. essa função que eu tô chamando,
     //é a função que atribui alguma coisa ao texto, o hConsole é a variável que eu tô usando como argumento,
     //e nela tem outra função(eu expliquei isso lá na função do gameTermo). o número depois, é a cor.
-    #define cPadrao SetConsoleTextAttribute(hConsole, 0x07)
-    #define cVerde SetConsoleTextAttribute(hConsole, 0x02)
-    #define cVermelho SetConsoleTextAttribute(hConsole, 0x0C)
-    #define cAmarelo SetConsoleTextAttribute(hConsole, 0x0E)
+    #define cor_padrao SetConsoleTextAttribute(hConsole, 0x07)
+    #define cor_verde SetConsoleTextAttribute(hConsole, 0x02)
+    #define cor_vermelho SetConsoleTextAttribute(hConsole, 0x0C)
+    #define cor_amarelo SetConsoleTextAttribute(hConsole, 0x0E)
 }
-void repet(){
-    printf("\n\ndeseja repetir?(y/qqlr botao) ");
-    char r = getch();
-    if(r == 'y') parada = 0;
-    else parada = 1;
+
+void repetir(){
+    printf("\n\ndeseja repetir?(s/n) ");
+    char r = tolower(getch());
+    
+    if(r == 's') gameLoop = 0;
+    else if(r == 'n'){
+        gameLoop = 1;
+        printf("\nobrigado por jogar!\n");
+        getchar();
+    } else {
+        printf("\ncaractere invalido! tente de novo!");
+        repetir();
+    }
 }
+
 void gameTermo(){
-    char *palavras[totalPalavras] = {"artes", "termo", "jogos", "verde", "couro", "porco", "vizao", "porta", "hotel", "coroa",
-    "metal", "morte", "corte", "risco", "letra", "disco", "falso", "entra", "grato", "certo", "ziper", "sapos",
-    "torre", "temor", "terno", "boina", "vidro", "raios", "funde", "finta"};
+    char *lista_palavras[totalPalavras] = {"artes", "termo", "jogos", "verde", "couro", "porco", "vizao", "porta",
+    "hotel", "coroa", "metal", "morte", "corte", "risco", "letra", "disco", "falso", "entra", "grato", "certo",
+    "ziper", "sapos", "torre", "temor", "terno", "boina", "vidro", "raios", "funde", "finta"};
 
         char termo[tamPalavra];
         int tentativas=6;
-        int rng = rand() % (29);
-
-        strcpy(termo, palavras[rng]);
+        int rng = rand() % (totalPalavras - 1); //escolhe um número aleatório, que sera usado como o index na lista,
+                                                //e pega uma palavra aleatória!
+        strcpy(termo, lista_palavras[rng]);
 
         //isso é coisa da biblioteca do <windows.h>, o handle é uma estrutura(struct), o hConsole é o nome
         //da variável que vai ser chamada sempre que eu quiser colorir a palavra e o que eu armazenei nela,
@@ -45,52 +55,54 @@ void gameTermo(){
         cores();
 
         while(tentativas != 0){
-            int i, j, correto[tamPalavra] = {0, 0, 0, 0, 0, 0}; 
-            int pos[tamPalavra], letras=0;
+            int i, j, letras_corretas=0; 
+            int cor_da_letra[tamPalavra], posicao_da_letra[tamPalavra] = {0, 0, 0, 0, 0, 0};
+            
             char guess[tamPalavra];
 
             printf("\ndigite alguma palavra(%d): ", rng);
-            fgets(guess, tamPalavra, stdin);
+            strlwr(fgets(guess, tamPalavra, stdin));
             getchar();
             
             for(i=0;i<6;i++){ //caso a letra esteja no lugar certo.
                 if(termo[i] == guess[i]){
-                    pos[i] = 0;
-                    correto[i] = 1;
-                    letras++;
+                    cor_da_letra[i] = 0;
+                    posicao_da_letra[i] = 1;
+                    letras_corretas++;
                 } 
             }
+
             for(i=0;i<tamPalavra;i++){ //não tem esta letra!
-                if(termo[i] != guess[i] && correto[i] == 0) pos[i] = 2;
+                if(termo[i] != guess[i] && posicao_da_letra[i] == 0) cor_da_letra[i] = 2;
             }
+
             for(i=0;i<tamPalavra;i++){ //caso tenha esta letra na palavra, porem, está no lugar errado.
                 for(j=0;j<tamPalavra;j++){
-                    if(termo[i] == guess[j] && correto[j] != 1){
-                        pos[j] = 1; 
-                        correto[j] = 1;
+                    if(termo[i] == guess[j] && posicao_da_letra[j] != 1){
+                        cor_da_letra[j] = 1;
                         break;
                     } 
                 }
             }
             
-            for(i=0;i<tamPalavra;i++){ //caso pos=1(pinta de verde), pos=2(pinta de amarelo), pos=3(pinta de vermelho).
-                if(pos[i] == 0){
-                    cVerde;
+            for(i=0;i<tamPalavra;i++){ //caso = 0(pinta de verde), = 1(pinta de amarelo), = 2(pinta de vermelho).
+                if(cor_da_letra[i] == 0){
+                    cor_verde;
                     printf("%c ", guess[i]);
-                    cPadrao;
+                    cor_padrao;
                 }
-                else if(pos[i] == 1){
-                    cAmarelo;
+                else if(cor_da_letra[i] == 2){
+                    cor_vermelho;
                     printf("%c ", guess[i]);
-                    cPadrao;
+                    cor_padrao;
                 }
-                else if(pos[i] == 2){
-                    cVermelho;
+                else if(cor_da_letra[i] == 1){
+                    cor_amarelo;
                     printf("%c ", guess[i]);
-                    cPadrao;
+                    cor_padrao;
                 }
             }
-            if(letras == tamPalavra){
+            if(letras_corretas == tamPalavra){
                 printf("\n=============================================");
                 printf("\nparabens, voce acertou! palavra: %s", termo);
                 break;
@@ -109,9 +121,9 @@ int main(){
 
     printf("bem vindo ao termo!");
     printf("\n=============================================");
-    while(!parada){
+    while(!gameLoop){
         gameTermo();
-        repet();
+        repetir();
     }
     return 0;
 }
