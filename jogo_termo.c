@@ -4,6 +4,7 @@
 #include <time.h>
 #include <conio.h>
 #include <ctype.h>
+#include <locale.h>
 
 #define totalPalavras 80
 #define tamPalavra 6
@@ -22,6 +23,7 @@ typedef struct
 //essa função pega as informações do player!
 Jogador jogador_info()
 {
+    system("cls");
     Jogador player;
 
     printf("Digite seu nome: ");
@@ -30,7 +32,7 @@ Jogador jogador_info()
 
     if(strlen(player.nome) < 1 || strlen(player.nome) > 9) strcpy(player.nome, "abc"); 
     //se o jogador não escrever nome, o nome dele vai ser "abc"
-
+    system("cls");
     return player;
 }
 
@@ -40,6 +42,19 @@ Jogador jogador_info()
 void atualizarPontos(Jogador *plr, int pts)
 {
     plr->pontos += pts;
+}
+
+void salvarJogador(const Jogador *plr, const char *jogadores)
+{
+    FILE *save = fopen(jogadores, "a");
+
+    if(save == NULL){
+        printf("Não foi possivel abrir o arquivo!\n");
+        return;
+    }
+
+    fprintf(save, "%s - %d pts\n", plr->nome, plr->pontos);
+    fclose(save);
 }
 
 void mostrarRegras()
@@ -128,7 +143,7 @@ void jogoTermo(Jogador *plr)
                 }
             }
 
-            for(i=0;i<6;i++){ //caso a letra esteja no lugar certo.
+            for(i=0;i<tamPalavra;i++){ //caso a letra esteja no lugar certo.
                 if(termo[i] == guess[i]){
                     cor_da_letra[i] = 0;
                     posicao_da_letra[i] = 1;
@@ -173,7 +188,7 @@ void jogoTermo(Jogador *plr)
                 printf("\ntriste, voce perdeu! palavra: %s", termo);
             }
         }
-        printf("\npontuacao atual: %d", plr->pontos);
+        printf("\npontuação atual: %d", plr->pontos);
         printf("\n\ndeseja repetir?(s/outro) ");
         char r = tolower(getch());
         printf("\n");
@@ -186,14 +201,47 @@ void jogoTermo(Jogador *plr)
         else
         {
             gameloop = 1;
+            printf("deseja salvar sua pontuação na tabela? (s/outro)");
+            char resposta = tolower(getch());
+
+            if(resposta == 's')
+            {
+                salvarJogador(plr, "jogadores.dat");
+            }
             system("cls");
         }
     }
 }
 
+void mostrarRanking(const Jogador *plr, const char *jogadores)
+{
+    system("cls");
+    FILE *load = fopen(jogadores, "r");
+    char linha[50];
+
+    if(load == NULL){
+        printf("Não foi possivel abrir o arquivo!\n");
+        return;
+    }
+
+    while (fgets(linha, sizeof(linha), load)) {
+        linha[strcspn(linha, "\n")] = '\0';
+        printf(linha);
+        printf("\n");
+    }
+
+    fclose(load);
+
+    printf("\n");
+    getch();
+    system("cls");
+}
+
 int main()
 {
     srand(time(NULL));
+    setlocale(LC_ALL, "pt_PT.UTF8");
+
     int menuloop = 0;
 
     Jogador playerAtual = jogador_info();
@@ -211,8 +259,8 @@ int main()
         char r = getch();
         if(r == '1') jogoTermo(&playerAtual);
         else if(r == '2') mostrarRegras();
-        else if(r == '3') NULL;
-        else if(r == '4') NULL;
+        else if(r == '3') mostrarRanking(&playerAtual, "jogadores.dat");
+        else if(r == '4') playerAtual = jogador_info();
         else if(r == '5') exit(0);
         else
         {
