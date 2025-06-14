@@ -131,7 +131,8 @@ void jogoTermo(Jogador *plr)
                 printf("(%d)", tentativas);
                 printf(" digite alguma palavra: ");
                 scanf("%s", &guess);
-                    
+                strlwr(guess);
+
                 if(strlen(guess) == 5){
                     getchar();
                     break;
@@ -233,7 +234,7 @@ void mostrarJogadores(const char *jogadores)
     }
 
     fclose(load);
-    
+
     printf("\ntotal de jogadores: %d", total);
     printf("\n");
     getch();
