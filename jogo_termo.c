@@ -25,13 +25,34 @@ Jogador jogador_info()
 {
     system("cls");
     Jogador player;
+    
+    while(1){
+        printf("Digite seu nome: ");
+        fgets(player.nome, sizeof(player.nome), stdin);
+        player.nome[strcspn(player.nome, "\n")] = '\0';
+        
+        int check = 0;
 
-    printf("Digite seu nome: ");
-    scanf("%s", player.nome);
-    player.pontos = 0;
+        //vai checar se o nome do player tem alguma letra invalida.
+        for(int i=0;player.nome[i] != '\0';i++){
+            if(!(isalnum(player.nome[i]) || player.nome[i] == ' ' || player.nome[i] == '_') || player.nome[i] > 127){
+                check = 1;
+                break;
+            }
+        }
 
-    if(strlen(player.nome) < 1 || strlen(player.nome) > 9) strcpy(player.nome, "abc"); 
-    //se o jogador não escrever nome, o nome dele vai ser "abc"
+        if(strlen(player.nome) < 1 || strlen(player.nome) > 9) check = 1;
+
+        if(!check){
+            player.pontos = 0;
+            break;
+        } else {
+            printf("nome invalido, tente de novo!");
+            getch();
+            system("cls");
+        }
+
+    }
     system("cls");
     return player;
 }
@@ -50,6 +71,8 @@ void salvarJogador(const Jogador *plr, const char *jogadores)
 
     if(save == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
         return;
     }
 
@@ -87,6 +110,8 @@ char* gerarPalavra(char palavras[totalPalavras][100])
     
     if(lista == NULL){
         printf("A lista de palavras não foi encontrada!\n");
+        getch();
+        system("cls");
         return NULL;
     }
 
@@ -230,6 +255,8 @@ void mostrarJogadores(const char *jogadores)
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
         return;
     }
 
@@ -257,6 +284,8 @@ void mostrarRanking(const char *jogadores, const char *ranking)
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
         return;
     }
 
@@ -288,6 +317,8 @@ void mostrarRanking(const char *jogadores, const char *ranking)
 
     if(write == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
         return;
     }
 
