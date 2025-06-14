@@ -17,12 +17,13 @@
 typedef struct
 {
     char nome[10];
-    int pontos;
+    int pontos, tentativas, vitorias, derrotas;
+    time_t tempo;
 }Jogador;
 
-//essa função pega as informações do player!
 Jogador jogador_info()
 {
+    //essa função pega as informações do player!
     system("cls");
     Jogador player;
     
@@ -44,7 +45,8 @@ Jogador jogador_info()
         if(strlen(player.nome) < 1 || strlen(player.nome) > 9) check = 1;
 
         if(!check){
-            player.pontos = 0;
+            player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0;
+            player.tempo = time(NULL);
             break;
         } else {
             printf("nome invalido, tente de novo!");
@@ -57,11 +59,11 @@ Jogador jogador_info()
     return player;
 }
 
-//essa função vai ser chamada para atualizar a pontuação do jogador atual dentro do jogo
-//ela vai receber as informações do jogador e atualizar os pontos do jogador na função "jogador_info".
-//por isso, ela tá recebendo um ponteiro.
 void atualizarPontos(Jogador *plr, int pts)
 {
+    //essa função vai ser chamada para atualizar a pontuação do jogador atual dentro do jogo
+    //ela vai receber as informações do jogador e atualizar os pontos do jogador na função "jogador_info".
+    //por isso, ela tá recebendo um ponteiro.
     plr->pontos += pts;
 }
 
@@ -102,10 +104,10 @@ void mostrarRegras()
     system("cls");
 }
 
-//vai escrever todas as palavras da lista e colocar num vetor, depois vai pegar uma palavra aleatória entre elas,
-//para cada rodada ter uma palavra diferente!
 char* gerarPalavra(char palavras[totalPalavras][100])
 {
+    //vai escrever todas as palavras da lista e colocar num vetor, depois vai pegar uma palavra aleatória entre elas,
+    //para cada rodada ter uma palavra diferente!
     FILE *lista = fopen("listadepalavras.txt", "r");
     
     if(lista == NULL){
@@ -117,8 +119,7 @@ char* gerarPalavra(char palavras[totalPalavras][100])
 
     int i=0;
 
-    //pega a lista de palavras e coloca em um vetor. também troca todos os "\n" por "\0" para finalizar
-    //a string, no lugar de pular uma linha.
+    //também troca todos os "\n" por "\0" para finalizar a string, no lugar de pular uma linha.
     while(fgets(palavras[i], totalPalavras, lista)!=NULL){
         palavras[i][strcspn(palavras[i], "\n")] = '\0';
         i++;
@@ -131,14 +132,14 @@ char* gerarPalavra(char palavras[totalPalavras][100])
     return palavras[rng];
 }
 
-//o jogo!
 void jogoTermo(Jogador *plr)
 {
     system("cls");
     int gameloop = 0;
     char palavras[totalPalavras][100];
     plr->pontos = 0;
-    int winStreak = 0, pts = 10;
+    plr->tentativas++;
+    int winStreak = 0, pts = 10, check=0;
 
     while(!gameloop){
         int tentativas=6;
@@ -201,13 +202,17 @@ void jogoTermo(Jogador *plr)
 
             if(letras_corretas == tamPalavra){
                 printf("=============================================");
-                printf("\nparabéns, você acertou!");
-                
+                printf("\nParabéns, você acertou!");
+                plr->vitorias++;
+
                 winStreak++;
                 if(winStreak>1) pts +=2; 
                 int n = tentativas * pts;
 
                 atualizarPontos(plr, n);
+                printf("\n\npontuação atual: %d\n", plr->pontos);
+                printf("sequência de vitórias atual: %d", winStreak);
+
                 break;
             } else {
                 tentativas--;
@@ -215,32 +220,28 @@ void jogoTermo(Jogador *plr)
 
             if(tentativas == 0){
                 printf("=============================================");
-                printf("\nque pena, você perdeu! palavra: %s", termo);
-                plr->pontos = 0;
-                winStreak = 0;
+                printf("\nQue pena, você perdeu! Palavra: %s", termo);
+                plr->derrotas++;
+
+                salvarJogador(plr, "jogadores.dat");
+                check=1;
             }
         }
-        printf("\n\npontuação atual: %d\n", plr->pontos);
-        printf("sequência de vitórias atual: %d", winStreak);
+
         printf("\n\ndeseja repetir?(s/outro) ");
         char r = tolower(getch());
         printf("\n");
 
         if(r == 's')
         {
+            if(check == 1) plr->tentativas++;
             gameloop = 0;
             system("cls");
         }
         else
         {
+            if(check == 0) salvarJogador(plr, "jogadores.dat"); 
             gameloop = 1;
-            printf("deseja salvar sua pontuação na tabela? (s/outro)");
-            char resposta = tolower(getch());
-
-            if(resposta == 's')
-            {
-                salvarJogador(plr, "jogadores.dat");
-            }
             system("cls");
         }
     }
@@ -268,8 +269,9 @@ void mostrarJogadores(const char *jogadores)
     }
 
     fclose(load);
-
-    printf("\ntotal de jogadores: %d", total);
+    
+    printf("\n\n=============================================");
+    printf("\nTotal de jogadores / tentativas: %d", total);
     printf("\n");
     getch();
     system("cls");
@@ -338,6 +340,25 @@ void mostrarRanking(const char *jogadores, const char *ranking)
     system("cls");
 }
 
+void mostrarInformacoes(const Jogador *plr)
+{
+    system("cls");
+    printf("Jogador(a): %s\n", plr->nome);
+    printf("=============================================\n");
+    printf("tentativas: %d\n", plr->tentativas);
+    printf("palavras descobertas: %d\n", plr->vitorias);
+    printf("derrotas: %d\n\n", plr->derrotas);
+
+    time_t atual = time(NULL);
+    int total = (int)(atual - plr->tempo);
+    int min = total / 60;
+    int segundos = total % 60;
+    printf("você jogou por %02d:%02d", min, segundos);
+    
+    getch();
+    system("cls");
+}
+
 int main()
 {
     srand(time(NULL));
@@ -354,8 +375,9 @@ int main()
         printf("1 - Jogar Termo\n");
         printf("2 - Ver Regras\n");
         printf("3 - Ver Pontuações\n");
-        printf("4 - Trocar de Jogador\n");
-        printf("5 - Sair do Jogo\n");
+        printf("4 - Mostrar Informações do Jogador\n");
+        printf("5 - Trocar de Jogador\n");
+        printf("6 - Sair do Jogo\n");
 
         char r = getch();
 
@@ -375,8 +397,9 @@ int main()
                 system("cls");
             }
         }
-        else if(r == '4') playerAtual = jogador_info();
-        else if(r == '5') exit(0);
+        else if(r == '4') mostrarInformacoes(&playerAtual);
+        else if(r == '5') playerAtual = jogador_info();
+        else if(r == '6') exit(0);
         else
         {
             menuloop = 0;
