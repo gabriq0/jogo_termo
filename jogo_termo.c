@@ -213,11 +213,12 @@ void jogoTermo(Jogador *plr)
     }
 }
 
-void mostrarRanking(const Jogador *plr, const char *jogadores)
+void mostrarJogadores(const char *jogadores)
 {
     system("cls");
     FILE *load = fopen(jogadores, "r");
     char linha[50];
+    int total=0;
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
@@ -226,11 +227,72 @@ void mostrarRanking(const Jogador *plr, const char *jogadores)
 
     while (fgets(linha, sizeof(linha), load)) {
         linha[strcspn(linha, "\n")] = '\0';
+        total++;
         printf(linha);
         printf("\n");
     }
 
     fclose(load);
+    
+    printf("\ntotal de jogadores: %d", total);
+    printf("\n");
+    getch();
+    system("cls");
+}
+
+void mostrarRanking(const char *jogadores, const char *ranking)
+{
+    system("cls");
+    FILE *load = fopen(jogadores, "r");
+    char nome[200][10], temp_str[10];
+    int pontos[200], top15_pts[15], i=0, j=0, temp;
+
+    if(load == NULL){
+        printf("Não foi possivel abrir o arquivo!\n");
+        return;
+    }
+
+    while (fscanf(load, "%s - %d pts", nome[i], &pontos[i]) == 2) {
+        i++;
+    }
+    int max = i;
+    
+    fclose(load);
+
+    //isso de cima vai pegar a lista de jogadores e colocar num vetor.
+
+    //bubble sort para organizar os jogadores e suas pontuações!!!
+    for(i=0;i<max-1;i++){
+        for(j=0;j<max-1-i;j++){
+            if(pontos[j] < pontos[j+1]){
+                temp = pontos[j];
+                pontos[j] = pontos[j+1];
+                pontos[j+1] = temp;
+
+                strcpy(temp_str, nome[j]);
+                strcpy(nome[j], nome[j+1]);
+                strcpy(nome[j+1], temp_str);
+            }
+        }
+    }
+
+    FILE *write = fopen(ranking, "w");
+
+    if(write == NULL){
+        printf("Não foi possivel abrir o arquivo!\n");
+        return;
+    }
+
+    int limite = (max < 15) ? max : 15;
+    
+    //vai colocar os valores organizados no arquivo e depois mostrar eles!
+    for(i=0;i<limite;i++){
+        top15_pts[i] = pontos[i];
+        fprintf(write, "(%d) %s - %d pts\n", i+1, nome[i], top15_pts[i]);
+        printf("(%d) %s - %d pts\n", i+1, nome[i], top15_pts[i]);
+    }
+
+    fclose(write);
 
     printf("\n");
     getch();
@@ -257,9 +319,23 @@ int main()
         printf("5 - Sair do Jogo\n");
 
         char r = getch();
+
         if(r == '1') jogoTermo(&playerAtual);
         else if(r == '2') mostrarRegras();
-        else if(r == '3') mostrarRanking(&playerAtual, "jogadores.dat");
+        else if(r == '3'){
+            system("cls");
+            printf("Escolha uma opção: \n");
+            printf("1 - Ver lista dos jogadores\n");
+            printf("2 - Ver ranking dos 15 melhores jogadores\n");
+
+            char resp = getch();
+            if(resp == '1') mostrarJogadores("jogadores.dat");
+            else if(resp == '2') mostrarRanking("jogadores.dat", "ranking.dat");
+            else{
+                menuloop = 0;
+                system("cls");
+            }
+        }
         else if(r == '4') playerAtual = jogador_info();
         else if(r == '5') exit(0);
         else
