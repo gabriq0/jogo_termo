@@ -60,18 +60,18 @@ void salvarJogador(const Jogador *plr, const char *jogadores)
 void mostrarRegras()
 {
     system("cls");
-    printf("Cada rodada, voce deve digitar uma palavra:\n\n");
-    printf("se a letra estiver verde, ela esta na palavra e na posicao correta: \n");
+    printf("Cada rodada, você deve digitar uma palavra:\n\n");
+    printf("se a letra estiver verde, ela está na palavra e na posição correta: \n");
     printf(cor_verde "t e " cor_vermelho "r m o");
     printf(cor_reset);
     printf("\n\n");
     
-    printf("se a letra estiver amarela, ela esta na palavra, mas em outra posicao: \n");
+    printf("se a letra estiver amarela, ela está na palavra, mas em outra posição: \n");
     printf(cor_vermelho "a l m " cor_amarelo "a s");
     printf(cor_reset);
     printf("\n\n");
     
-    printf("se a letra estiver vermelho, ela nao esta na palavra: \n");
+    printf("se a letra estiver em vermelho, ela não está na palavra: \n");
     printf(cor_verde "c i " cor_vermelho "n c o");
     printf(cor_reset);
     printf("\n\n");
@@ -113,6 +113,7 @@ void jogoTermo(Jogador *plr)
     int gameloop = 0;
     char palavras[totalPalavras][100];
     plr->pontos = 0;
+    int winStreak = 0, pts = 10;
 
     while(!gameloop){
         int tentativas=6;
@@ -174,9 +175,12 @@ void jogoTermo(Jogador *plr)
             printf("\n");
 
             if(letras_corretas == tamPalavra){
-                printf("\n=============================================");
-                printf("\nparabens, voce acertou!");
-                int n = tentativas * 10;
+                printf("=============================================");
+                printf("\nparabéns, você acertou!");
+                
+                winStreak++;
+                if(winStreak>1) pts +=2; 
+                int n = tentativas * pts;
 
                 atualizarPontos(plr, n);
                 break;
@@ -185,11 +189,14 @@ void jogoTermo(Jogador *plr)
             }
 
             if(tentativas == 0){
-                printf("\n=============================================");
-                printf("\ntriste, voce perdeu! palavra: %s", termo);
+                printf("=============================================");
+                printf("\nque pena, você perdeu! palavra: %s", termo);
+                plr->pontos = 0;
+                winStreak = 0;
             }
         }
-        printf("\npontuação atual: %d", plr->pontos);
+        printf("\n\npontuação atual: %d\n", plr->pontos);
+        printf("sequência de vitórias atual: %d", winStreak);
         printf("\n\ndeseja repetir?(s/outro) ");
         char r = tolower(getch());
         printf("\n");
@@ -315,7 +322,7 @@ int main()
 
         printf("1 - Jogar Termo\n");
         printf("2 - Ver Regras\n");
-        printf("3 - Ver Pontuacoes\n");
+        printf("3 - Ver Pontuações\n");
         printf("4 - Trocar de Jogador\n");
         printf("5 - Sair do Jogo\n");
 
