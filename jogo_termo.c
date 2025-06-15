@@ -17,7 +17,7 @@
 typedef struct
 {
     char nome[10];
-    int pontos, tentativas, vitorias, derrotas;
+    int pontos, tentativas, vitorias, derrotas, save;
     time_t tempo;
 }Jogador;
 
@@ -36,7 +36,7 @@ Jogador jogador_info()
 
         //vai checar se o nome do player tem alguma letra invalida.
         for(int i=0;player.nome[i] != '\0';i++){
-            if(!(isalnum(player.nome[i]) || player.nome[i] == ' ' || player.nome[i] == '_') || player.nome[i] > 127){
+            if(!(isalnum(player.nome[i]) || player.nome[i] == '_') || player.nome[i] > 127){
                 check = 1;
                 break;
             }
@@ -45,7 +45,7 @@ Jogador jogador_info()
         if(strlen(player.nome) < 1 || strlen(player.nome) > 9) check = 1;
 
         if(!check){
-            player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0;
+            player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0, player.save = 0;
             player.tempo = time(NULL);
             break;
         } else {
@@ -57,29 +57,6 @@ Jogador jogador_info()
     }
     system("cls");
     return player;
-}
-
-void atualizarPontos(Jogador *plr, int pts)
-{
-    //essa função vai ser chamada para atualizar a pontuação do jogador atual dentro do jogo
-    //ela vai receber as informações do jogador e atualizar os pontos do jogador na função "jogador_info".
-    //por isso, ela tá recebendo um ponteiro.
-    plr->pontos += pts;
-}
-
-void salvarJogador(const Jogador *plr, const char *jogadores)
-{
-    FILE *save = fopen(jogadores, "a");
-
-    if(save == NULL){
-        printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
-        return;
-    }
-
-    fprintf(save, "%s - %d pts\n", plr->nome, plr->pontos);
-    fclose(save);
 }
 
 void mostrarRegras()
@@ -100,7 +77,38 @@ void mostrarRegras()
     printf(cor_verde "c i " cor_vermelho "n c o");
     printf(cor_reset);
     printf("\n\n");
+    printf("==========================================================================================\n\n");
+
+    printf("* Quanto maior mais palavras, você acertar em sequência sem perder, maior será sua pontuação!\n\n");
+    printf("* Quando você salvar suas informações, apenas sua maior pontuação será salva.\n\n");
+    printf("* Você pode salvar apenas uma vez, então por favor, salve apenas quando terminar de jogar, ou antes de trocar de perfil.\n\n");
+
+
     getch();
+    system("cls");
+}
+
+void atualizarPontos(Jogador *plr, int pontuacao)
+{
+    if(pontuacao > plr->pontos) plr->pontos = pontuacao;
+}
+
+void salvarJogador(const Jogador *plr, const char *jogadores)
+{
+    system("cls");
+    FILE *save = fopen(jogadores, "a");
+
+    if(save == NULL){
+        printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
+        return;
+    }
+
+    fprintf(save, "%s - %d pts\n", plr->nome, plr->pontos);
+    fprintf(save, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
+    fclose(save);
+
     system("cls");
 }
 
@@ -137,15 +145,15 @@ void jogoTermo(Jogador *plr)
     system("cls");
     int gameloop = 0;
     char palavras[totalPalavras][100];
-    plr->pontos = 0;
     plr->tentativas++;
-    int winStreak = 0, pts = 10, check=0;
+    int winStreak = 0, pontuacao=0, pts = 10;
 
     while(!gameloop){
-        int tentativas=6;
+        int tentativas=6, check=0;
         char termo[tamPalavra];
 
         strcpy(termo, gerarPalavra(palavras));
+        if(termo == NULL) gameloop = 1;
 
         while(tentativas != 0){
             int i, j, letras_corretas=0, tamLetras=0; 
@@ -207,11 +215,11 @@ void jogoTermo(Jogador *plr)
 
                 winStreak++;
                 if(winStreak>1) pts +=2; 
-                int n = tentativas * pts;
-
-                atualizarPontos(plr, n);
-                printf("\n\npontuação atual: %d\n", plr->pontos);
-                printf("sequência de vitórias atual: %d", winStreak);
+                pontuacao += tentativas * pts;
+                
+                printf("\n\npontuação atual: %d\n", pontuacao);
+                printf("sequência de vitórias atual: %d\n", winStreak);
+                atualizarPontos(plr, pontuacao);
 
                 break;
             } else {
@@ -221,14 +229,16 @@ void jogoTermo(Jogador *plr)
             if(tentativas == 0){
                 printf("=============================================");
                 printf("\nQue pena, você perdeu! Palavra: %s", termo);
+                printf("\nPontuação final: %d\n", pontuacao);
                 plr->derrotas++;
+                atualizarPontos(plr, pontuacao);
 
-                salvarJogador(plr, "jogadores.dat");
+                pontuacao=0, winStreak=0, pts=10;
                 check=1;
             }
         }
 
-        printf("\n\ndeseja repetir?(s/outro) ");
+        printf("\ndeseja repetir?(s/outro) ");
         char r = tolower(getch());
         printf("\n");
 
@@ -240,7 +250,6 @@ void jogoTermo(Jogador *plr)
         }
         else
         {
-            if(check == 0) salvarJogador(plr, "jogadores.dat"); 
             gameloop = 1;
             system("cls");
         }
@@ -266,12 +275,12 @@ void mostrarJogadores(const char *jogadores)
         total++;
         printf(linha);
         printf("\n");
+        if(total % 2 == 0) printf("=============================================\n");
     }
 
     fclose(load);
     
-    printf("\n\n=============================================");
-    printf("\nTotal de jogadores / tentativas: %d", total);
+    printf("\n\nTotal de jogadores: %d", total/2);
     printf("\n");
     getch();
     system("cls");
@@ -281,8 +290,10 @@ void mostrarRanking(const char *jogadores, const char *ranking)
 {
     system("cls");
     FILE *load = fopen(jogadores, "r");
-    char nome[200][10], temp_str[10];
-    int pontos[200], top15_pts[15], i=0, j=0, temp;
+    
+    char nome[200][10], temp_str[10], ignorar[100], linha[100];
+    int pontos[200]; 
+    int i=0, j=0, temp;
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
@@ -291,8 +302,11 @@ void mostrarRanking(const char *jogadores, const char *ranking)
         return;
     }
 
-    while (fscanf(load, "%s - %d pts", nome[i], &pontos[i]) == 2) {
-        i++;
+    while(fgets(linha, sizeof(linha), load)){
+        if(sscanf(linha, "%s - %d pts", nome[i], &pontos[i]) == 2) {
+            i++;
+            fgets(linha, sizeof(linha), load);
+        }
     }
     int max = i;
     
@@ -328,9 +342,8 @@ void mostrarRanking(const char *jogadores, const char *ranking)
     
     //vai colocar os valores organizados no arquivo e depois mostrar eles!
     for(i=0;i<limite;i++){
-        top15_pts[i] = pontos[i];
-        fprintf(write, "(%d) %s - %d pts\n", i+1, nome[i], top15_pts[i]);
-        printf("(%d) %s - %d pts\n", i+1, nome[i], top15_pts[i]);
+        fprintf(write, "(%d) %s - %d pts\n", i+1, nome[i], pontos[i]);
+        printf("(%d) %s - %d pts\n", i+1, nome[i], pontos[i]);
     }
 
     fclose(write);
@@ -344,10 +357,12 @@ void mostrarInformacoes(const Jogador *plr)
 {
     system("cls");
     printf("Jogador(a): %s\n", plr->nome);
-    printf("=============================================\n");
+    printf("\n=============================================\n\n");
+    printf("maior pontuação: %d\n", plr->pontos);
     printf("tentativas: %d\n", plr->tentativas);
     printf("palavras descobertas: %d\n", plr->vitorias);
     printf("derrotas: %d\n\n", plr->derrotas);
+    printf("=============================================\n");
 
     time_t atual = time(NULL);
     int total = (int)(atual - plr->tempo);
@@ -374,8 +389,8 @@ int main()
 
         printf("1 - Jogar Termo\n");
         printf("2 - Ver Regras\n");
-        printf("3 - Ver Pontuações\n");
-        printf("4 - Mostrar Informações do Jogador\n");
+        printf("3 - Ver Estatísticas\n");
+        printf("4 - Salvar Jogo\n");
         printf("5 - Trocar de Jogador\n");
         printf("6 - Sair do Jogo\n");
 
@@ -385,19 +400,32 @@ int main()
         else if(r == '2') mostrarRegras();
         else if(r == '3'){
             system("cls");
-            printf("Escolha uma opção: \n");
-            printf("1 - Ver lista dos jogadores\n");
-            printf("2 - Ver ranking dos 15 melhores jogadores\n");
+            printf("Escolha uma opção: \n\n");
+            printf("1 - Ver estatísticas pessoais\n");
+            printf("2 - Ver lista de todos os jogadores\n");
+            printf("3 - Ver ranking dos 15 melhores jogadores\n");
 
             char resp = getch();
-            if(resp == '1') mostrarJogadores("jogadores.dat");
-            else if(resp == '2') mostrarRanking("jogadores.dat", "ranking.dat");
+            if(resp == '1') mostrarInformacoes(&playerAtual);
+            else if(resp == '2') mostrarJogadores("jogadores.dat");
+            else if(resp == '3') mostrarRanking("jogadores.dat", "ranking.dat");
             else{
                 menuloop = 0;
                 system("cls");
             }
         }
-        else if(r == '4') mostrarInformacoes(&playerAtual);
+        else if(r == '4'){
+            if(playerAtual.pontos == 0 || playerAtual.save == 1){
+                system("cls");
+                printf("Não foi possível salvar!");
+                getch();
+                system("cls");
+            }
+            else if(playerAtual.save == 0){
+                salvarJogador(&playerAtual, "jogadores.dat");
+                playerAtual.save = 1;
+            }
+        }
         else if(r == '5') playerAtual = jogador_info();
         else if(r == '6') exit(0);
         else
