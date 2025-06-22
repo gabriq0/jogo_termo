@@ -17,7 +17,7 @@
 typedef struct
 {
     char nome[10];
-    int pontos, tentativas, vitorias, derrotas, save;
+    int pontos, tentativas, vitorias, derrotas;
     time_t tempo;
 }Jogador;
 
@@ -45,7 +45,7 @@ Jogador jogador_info()
         if(strlen(player.nome) < 1 || strlen(player.nome) > 9) check = 1;
 
         if(!check){
-            player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0, player.save = 0;
+            player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0;
             player.tempo = time(NULL);
             break;
         } else {
@@ -81,8 +81,7 @@ void mostrarRegras()
 
     printf("* Quanto maior mais palavras, você acertar em sequência sem perder, maior será sua pontuação!\n\n");
     printf("* Quando você salvar suas informações, apenas sua maior pontuação será salva.\n\n");
-    printf("* Você pode salvar apenas uma vez, então por favor, salve apenas quando terminar de jogar, ou antes de trocar de perfil.\n\n");
-
+    printf("* O jogo não salva seus pontos automaticamente, você deve salvar pelo menu quando quiser atualizar suas informações.\n\n");
 
     getch();
     system("cls");
@@ -93,21 +92,63 @@ void atualizarPontos(Jogador *plr, int pontuacao)
     if(pontuacao > plr->pontos) plr->pontos = pontuacao;
 }
 
-void salvarJogador(const Jogador *plr, const char *jogadores)
-{
+void salvarJogador(const char *filename, Jogador *plr) {
     system("cls");
-    FILE *save = fopen(jogadores, "a");
+    
+    FILE *file = fopen(filename, "r");
+    FILE *temp = fopen("data/temp.dat", "w");
+    
+    if(!file){
+        FILE *aux =fopen("data/jogadores.dat", "w");
+        fclose(aux);
+    }
 
-    if(save == NULL){
+    if (!temp) {
         printf("Não foi possivel abrir o arquivo!\n");
         getch();
         system("cls");
         return;
     }
 
-    fprintf(save, "%s - %d pts\n", plr->nome, plr->pontos);
-    fprintf(save, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
-    fclose(save);
+    char line1[100], line2[100];
+    int found = 0;
+    int newScore = plr->pontos;
+
+    while (fgets(line1, sizeof(line1), file)) {
+        fgets(line2, sizeof(line2), file);
+
+        char nome[10];
+        int pontos;
+
+        if(sscanf(line1, "%s - %d pts", nome, &pontos) == 2) {
+            if (strcmp(nome, plr->nome) == 0) {
+                found = 1;
+                if (newScore > pontos) {
+                    fprintf(temp, "%s - %d pts\n", nome, newScore); //atualiza os novos pontos do player
+                    fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
+                } else {
+                    fputs(line1, temp);
+                    fputs(line2, temp); //mantém o que estava antes
+                }
+            } else {
+                fputs(line1, temp);
+                fputs(line2, temp); //mantém os outros jogadores
+            }
+        }
+    }
+
+    //caso o jogador não estivesse na lista antes, isso vai colocar ele
+    if (!found) {
+        fprintf(temp, "%s - %d pts\n", plr->nome, newScore);
+        fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
+    }
+
+    fclose(file);
+    fclose(temp);
+
+    //troca a temp com o arquivo original
+    remove(filename);
+    rename("data/temp.dat", filename);
 
     system("cls");
 }
@@ -116,7 +157,7 @@ char* gerarPalavra(char palavras[totalPalavras][100])
 {
     //vai escrever todas as palavras da lista e colocar num vetor, depois vai pegar uma palavra aleatória entre elas,
     //para cada rodada ter uma palavra diferente!
-    FILE *lista = fopen("listadepalavras.txt", "r");
+    FILE *lista = fopen("data/listadepalavras.txt", "r");
     
     if(lista == NULL){
         printf("A lista de palavras não foi encontrada!\n");
@@ -407,25 +448,14 @@ int main()
 
             char resp = getch();
             if(resp == '1') mostrarInformacoes(&playerAtual);
-            else if(resp == '2') mostrarJogadores("jogadores.dat");
-            else if(resp == '3') mostrarRanking("jogadores.dat", "ranking.dat");
+            else if(resp == '2') mostrarJogadores("data/jogadores.dat");
+            else if(resp == '3') mostrarRanking("data/jogadores.dat", "data/ranking.dat");
             else{
                 menuloop = 0;
                 system("cls");
             }
         }
-        else if(r == '4'){
-            if(playerAtual.pontos == 0 || playerAtual.save == 1){
-                system("cls");
-                printf("Não foi possível salvar!");
-                getch();
-                system("cls");
-            }
-            else if(playerAtual.save == 0){
-                salvarJogador(&playerAtual, "jogadores.dat");
-                playerAtual.save = 1;
-            }
-        }
+        else if(r == '4') salvarJogador("data/jogadores.dat", &playerAtual);
         else if(r == '5') playerAtual = jogador_info();
         else if(r == '6') exit(0);
         else
