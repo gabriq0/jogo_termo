@@ -44,12 +44,31 @@ Jogador jogador_info()
 
         if(strlen(player.nome) < 1 || strlen(player.nome) > 9) check = 1;
 
+        //isso tudo aqui, vai ler a lista dos jogadores: se o nome já existir, não pode utilizá-lo.
+        FILE *file = fopen("data/jogadores.dat", "r");
+        char linha[100], nome[200][10];
+        int i=0, pontos[200];
+
+        while(fgets(linha, sizeof(linha), file)){
+        if(sscanf(linha, "%s - %d pts", nome[i], &pontos[i]) == 2) {
+            if(strcmp(nome[i], player.nome) == 0){
+            check = 1;
+            break;
+            }
+
+            i++;
+
+            fgets(linha, sizeof(linha), file);
+        }
+    }
+        fclose(file);
+
         if(!check){
             player.pontos = 0, player.tentativas = 0, player.vitorias = 0, player.derrotas = 0;
             player.tempo = time(NULL);
             break;
         } else {
-            printf("nome invalido, tente de novo!");
+            printf("nome invalido ou alguém já usou ele, tente de novo!");
             getch();
             system("cls");
         }
@@ -193,8 +212,9 @@ void jogoTermo(Jogador *plr)
         int tentativas=6, check=0;
         char termo[tamPalavra];
 
-        strcpy(termo, gerarPalavra(palavras));
-        if(termo == NULL) gameloop = 1;
+        char *palavraGerada = gerarPalavra(palavras);
+        if (palavraGerada == NULL) gameloop = 1;
+        else strcpy(termo, palavraGerada);
 
         while(tentativas != 0){
             int i, j, letras_corretas=0, tamLetras=0; 
@@ -204,8 +224,8 @@ void jogoTermo(Jogador *plr)
             while(1){
                 printf("=============================================\n");
                 fflush(stdin);
-                printf("(%d)", tentativas);
-                printf(" digite alguma palavra: ");
+                printf("(%d | %d) ", tentativas, pontuacao);
+                printf("Digite alguma palavra: ");
                 scanf("%s", &guess);
                 strlwr(guess);
 
@@ -321,7 +341,7 @@ void mostrarJogadores(const char *jogadores)
 
     fclose(load);
     
-    printf("\n\nTotal de jogadores: %d", total/2);
+    printf("\nTotal de jogadores: %d", total/2);
     printf("\n");
     getch();
     system("cls");
@@ -425,8 +445,14 @@ int main()
     Jogador playerAtual = jogador_info();
 
     while(!menuloop){
-        printf("Termo\n");
-        printf("bem vindo(a), %s!\n\n", playerAtual.nome);
+            printf(
+            "  _____ _____ ____  __  __  ___   \n"
+            " |_   _| ____|  _ \\|  \\/  |/ _ \\  \n"
+            "   | | |  _| | |_) | |\\/| | | | | \n"
+            "   | | | |___|  _ <| |  | | |_| | \n"
+            "   |_| |_____|_| \\_\\_|  |_|\\___/  \n");
+
+        printf("\nbem vindo(a), %s!\n\n", playerAtual.nome);
 
         printf("1 - Jogar Termo\n");
         printf("2 - Ver Regras\n");
