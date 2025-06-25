@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <locale.h>
 
-#define totalPalavras 80
+#define totalPalavras 100
 #define tamPalavra 6
 
 #define cor_vermelho "\e[0;31m"
@@ -21,8 +21,7 @@ typedef struct
     time_t tempo;
 }Jogador;
 
-Jogador jogador_info()
-{
+Jogador jogador_info(){
     //essa função pega as informações do player!
     system("cls");
     Jogador player;
@@ -32,7 +31,7 @@ Jogador jogador_info()
         fgets(player.nome, sizeof(player.nome), stdin);
         player.nome[strcspn(player.nome, "\n")] = '\0';
         
-        int check = 0;
+        int check = 0; //se o check continuar 0, as infos serão aceitas. caso se torne 1, serão recusados.
 
         //vai checar se o nome do player tem alguma letra invalida.
         for(int i=0;player.nome[i] != '\0';i++){
@@ -50,17 +49,16 @@ Jogador jogador_info()
         int i=0, pontos[200];
 
         while(fgets(linha, sizeof(linha), file)){
-        if(sscanf(linha, "%s - %d pts", nome[i], &pontos[i]) == 2) {
-            if(strcmp(nome[i], player.nome) == 0){
-            check = 1;
-            break;
+            if(sscanf(linha, "%s - %d pts", nome[i], &pontos[i]) == 2) {
+                if(strcmp(nome[i], player.nome) == 0){
+                    check = 1;
+                    break;
+                }
+
+                i++;
+                fgets(linha, sizeof(linha), file);
             }
-
-            i++;
-
-            fgets(linha, sizeof(linha), file);
         }
-    }
         fclose(file);
 
         if(!check){
@@ -78,8 +76,8 @@ Jogador jogador_info()
     return player;
 }
 
-void mostrarRegras()
-{
+void mostrarRegras(){
+    //aqui explica as regras e dicas sobre este jogo.
     system("cls");
     printf("Cada rodada, você deve digitar uma palavra:\n\n");
     printf("se a letra estiver verde, ela está na palavra e na posição correta: \n");
@@ -106,20 +104,23 @@ void mostrarRegras()
     system("cls");
 }
 
-void atualizarPontos(Jogador *plr, int pontuacao)
-{
+void atualizarPontos(Jogador *plr, int pontuacao){
+    //vai atualizar os pontos ao final de uma jogatina caso a pontuação seja maior do que o "high score" anterior.
     if(pontuacao > plr->pontos) plr->pontos = pontuacao;
 }
 
-void salvarJogador(const char *filename, Jogador *plr) {
+void salvarJogador(const char *filename, Jogador *plr){
+    //essa função atualiza as informações dos jogadores na lista geral com todos os players.
     system("cls");
     
     FILE *file = fopen(filename, "r");
     FILE *temp = fopen("data/temp.dat", "w");
     
     if(!file){
-        FILE *aux =fopen("data/jogadores.dat", "w");
-        fclose(aux);
+        printf("Não foi possivel abrir o arquivo!\n");
+        getch();
+        system("cls");
+        return;
     }
 
     if (!temp) {
@@ -129,7 +130,12 @@ void salvarJogador(const char *filename, Jogador *plr) {
         return;
     }
 
-    char line1[100], line2[100];
+    time_t atual = time(NULL);
+    int total = (int)(atual - plr->tempo);
+    int min = total / 60;
+    int segundos = total % 60;
+
+    char line1[1000], line2[1000];
     int found = 0;
     int newScore = plr->pontos;
 
@@ -144,14 +150,14 @@ void salvarJogador(const char *filename, Jogador *plr) {
                 found = 1;
                 if (newScore > pontos) {
                     fprintf(temp, "%s - %d pts\n", nome, newScore); //atualiza os novos pontos do player
-                    fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
+                    fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d / tempo de jogo: %02d:%02d\n", plr->tentativas, plr->vitorias, plr->derrotas, min, segundos);
                 } else {
-                    fputs(line1, temp);
-                    fputs(line2, temp); //mantém o que estava antes
+                    fputs(line1, temp); //não atualiza os pontos do player
+                    fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d / tempo de jogo: %02d:%02d\n", plr->tentativas, plr->vitorias, plr->derrotas, min, segundos);
                 }
             } else {
-                fputs(line1, temp);
-                fputs(line2, temp); //mantém os outros jogadores
+                fputs(line1, temp); //mantém os outros jogadores
+                fputs(line2, temp);
             }
         }
     }
@@ -159,7 +165,7 @@ void salvarJogador(const char *filename, Jogador *plr) {
     //caso o jogador não estivesse na lista antes, isso vai colocar ele
     if (!found) {
         fprintf(temp, "%s - %d pts\n", plr->nome, newScore);
-        fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d\n", plr->tentativas, plr->vitorias, plr->derrotas);
+        fprintf(temp, "tentativas: %d / let. corretas: %d / derrotas: %d / tempo de jogo: %02d:%02d\n", plr->tentativas, plr->vitorias, plr->derrotas, min, segundos);
     }
 
     fclose(file);
@@ -172,10 +178,8 @@ void salvarJogador(const char *filename, Jogador *plr) {
     system("cls");
 }
 
-char* gerarPalavra(char palavras[totalPalavras][100])
-{
-    //vai escrever todas as palavras da lista e colocar num vetor, depois vai pegar uma palavra aleatória entre elas,
-    //para cada rodada ter uma palavra diferente!
+char* gerarPalavra(char palavras[totalPalavras][100]){
+    //essa função gera uma palavra da lista. ela é chamada em todas as rodadas do jogo.
     FILE *lista = fopen("data/listadepalavras.txt", "r");
     
     if(lista == NULL){
@@ -200,13 +204,13 @@ char* gerarPalavra(char palavras[totalPalavras][100])
     return palavras[rng];
 }
 
-void jogoTermo(Jogador *plr)
-{
+void jogoTermo(Jogador *plr){
+    //essa função é o jogo inteiro.
     system("cls");
     int gameloop = 0;
     char palavras[totalPalavras][100];
-    plr->tentativas++;
     int winStreak = 0, pontuacao=0, pts = 10;
+    plr->tentativas++;
 
     while(!gameloop){
         int tentativas=6, check=0;
@@ -221,6 +225,7 @@ void jogoTermo(Jogador *plr)
             int cor_da_letra[tamPalavra], posicao_da_letra[tamPalavra] = {0, 0, 0, 0, 0, 0};
             char guess[tamPalavra];
 
+            //vai checar se a palavra escrita é do mesmo tamanho da resposta.
             while(1){
                 printf("=============================================\n");
                 fflush(stdin);
@@ -229,7 +234,7 @@ void jogoTermo(Jogador *plr)
                 scanf("%s", &guess);
                 strlwr(guess);
 
-                if(strlen(guess) == 5){
+                if(strlen(guess) == strlen(termo)){
                     getchar();
                     break;
                 } else {
@@ -240,7 +245,8 @@ void jogoTermo(Jogador *plr)
                 }
             }
 
-            for(i=0;i<tamPalavra;i++){ //caso a letra esteja no lugar certo.
+            //checa se a letra está no lugar certo.
+            for(i=0;i<tamPalavra;i++){
                 if(termo[i] == guess[i]){
                     cor_da_letra[i] = 0;
                     posicao_da_letra[i] = 1;
@@ -248,11 +254,13 @@ void jogoTermo(Jogador *plr)
                 } 
             }
 
-            for(i=0;i<tamPalavra;i++){ //não tem esta letra!
+            //checa se a letra não está na resposta.
+            for(i=0;i<tamPalavra;i++){
                 if(termo[i] != guess[i] && posicao_da_letra[i] == 0) cor_da_letra[i] = 2;
             }
 
-            for(i=0;i<tamPalavra;i++){ //caso tenha esta letra na palavra, porem, está no lugar errado.
+            //checa se a letra na resposta, porem, está no lugar errado.
+            for(i=0;i<tamPalavra;i++){
                 for(j=0;j<tamPalavra;j++){
                     if(termo[i] == guess[j] && posicao_da_letra[j] != 1){
                         cor_da_letra[j] = 1;
@@ -261,7 +269,8 @@ void jogoTermo(Jogador *plr)
                 }
             }
 
-            for(i=0;i<tamPalavra;i++){ //caso = 0(pinta de verde), = 1(pinta de amarelo), = 2(pinta de vermelho).
+            //caso = 0 (pinta de verde), = 1 (pinta de amarelo), = 2 (pinta de vermelho).
+            for(i=0;i<tamPalavra;i++){ 
                 if(cor_da_letra[i] == 0) printf(cor_verde "%c ", guess[i]);
                 else if(cor_da_letra[i] == 2) printf(cor_vermelho "%c ", guess[i]);
                 else if(cor_da_letra[i] == 1) printf(cor_amarelo "%c ", guess[i]);
@@ -269,6 +278,7 @@ void jogoTermo(Jogador *plr)
             }
             printf("\n");
 
+            //checa se o player acertou.
             if(letras_corretas == tamPalavra){
                 printf("=============================================");
                 printf("\nParabéns, você acertou!");
@@ -287,6 +297,7 @@ void jogoTermo(Jogador *plr)
                 tentativas--;
             }
 
+            //checa se o player perdeu (esgotou as tentativas)
             if(tentativas == 0){
                 printf("=============================================");
                 printf("\nQue pena, você perdeu! Palavra: %s", termo);
@@ -299,6 +310,7 @@ void jogoTermo(Jogador *plr)
             }
         }
 
+        //checa se o player ainda quer continuar (caso sim, seus pontos continuam)
         printf("\ndeseja repetir?(s/outro) ");
         char r = tolower(getch());
         printf("\n");
@@ -317,11 +329,11 @@ void jogoTermo(Jogador *plr)
     }
 }
 
-void mostrarJogadores(const char *jogadores)
-{
+void mostrarJogadores(const char *jogadores){
+    //essa função serve para mostrar a lista com todos os jogadores.
     system("cls");
     FILE *load = fopen(jogadores, "r");
-    char linha[50];
+    char linha[1000];
     int total=0;
 
     if(load == NULL){
@@ -336,7 +348,7 @@ void mostrarJogadores(const char *jogadores)
         total++;
         printf(linha);
         printf("\n");
-        if(total % 2 == 0) printf("=============================================\n");
+        if(total % 2 == 0) printf("==========================================================================================\n");
     }
 
     fclose(load);
@@ -347,8 +359,8 @@ void mostrarJogadores(const char *jogadores)
     system("cls");
 }
 
-void mostrarRanking(const char *jogadores, const char *ranking)
-{
+void mostrarRanking(const char *jogadores, const char *ranking){
+    //essa função vai mostrar o ranking com os 15 melhores jogadores.
     system("cls");
     FILE *load = fopen(jogadores, "r");
     
@@ -363,6 +375,7 @@ void mostrarRanking(const char *jogadores, const char *ranking)
         return;
     }
 
+    //isso vai ler a lista e pegar apenas o nome e os pontos de cada player.
     while(fgets(linha, sizeof(linha), load)){
         if(sscanf(linha, "%s - %d pts", nome[i], &pontos[i]) == 2) {
             i++;
@@ -373,9 +386,7 @@ void mostrarRanking(const char *jogadores, const char *ranking)
     
     fclose(load);
 
-    //isso de cima vai pegar a lista de jogadores e colocar num vetor.
-
-    //bubble sort para organizar os jogadores e suas pontuações!!!
+    //bubble sort para organizar os jogadores e suas pontuações.
     for(i=0;i<max-1;i++){
         for(j=0;j<max-1-i;j++){
             if(pontos[j] < pontos[j+1]){
@@ -401,7 +412,7 @@ void mostrarRanking(const char *jogadores, const char *ranking)
 
     int limite = (max < 15) ? max : 15;
     
-    //vai colocar os valores organizados no arquivo e depois mostrar eles!
+    //vai escrever o ranking no arquivo e depois mostrar ele no jogo.
     for(i=0;i<limite;i++){
         fprintf(write, "(%d) %s - %d pts\n", i+1, nome[i], pontos[i]);
         printf("(%d) %s - %d pts\n", i+1, nome[i], pontos[i]);
@@ -414,15 +425,18 @@ void mostrarRanking(const char *jogadores, const char *ranking)
     system("cls");
 }
 
-void mostrarInformacoes(const Jogador *plr)
-{
+void mostrarInformacoes(const Jogador *plr){
+    //essa função mostra as informações do player atual.
     system("cls");
+    
     printf("Jogador(a): %s\n", plr->nome);
     printf("\n=============================================\n\n");
+    
     printf("maior pontuação: %d\n", plr->pontos);
     printf("tentativas: %d\n", plr->tentativas);
     printf("palavras descobertas: %d\n", plr->vitorias);
     printf("derrotas: %d\n\n", plr->derrotas);
+    
     printf("=============================================\n");
 
     time_t atual = time(NULL);
@@ -435,8 +449,8 @@ void mostrarInformacoes(const Jogador *plr)
     system("cls");
 }
 
-int main()
-{
+int main(){
+    //o main tem o menu do jogo, que vai chamar cada função dependendo do que for selecionado.
     srand(time(NULL));
     setlocale(LC_ALL, "pt_PT.UTF8");
 
@@ -445,12 +459,12 @@ int main()
     Jogador playerAtual = jogador_info();
 
     while(!menuloop){
-            printf(
-            "  _____ _____ ____  __  __  ___   \n"
-            " |_   _| ____|  _ \\|  \\/  |/ _ \\  \n"
-            "   | | |  _| | |_) | |\\/| | | | | \n"
-            "   | | | |___|  _ <| |  | | |_| | \n"
-            "   |_| |_____|_| \\_\\_|  |_|\\___/  \n");
+        printf(
+        "  _____ _____ ____  __  __  ___   \n"
+        " |_   _| ____|  _ \\|  \\/  |/ _ \\  \n"
+        "   | | |  _| | |_) | |\\/| | | | | \n"
+        "   | | | |___|  _ <| |  | | |_| | \n"
+        "   |_| |_____|_| \\_\\_|  |_|\\___/  \n");
 
         printf("\nbem vindo(a), %s!\n\n", playerAtual.nome);
 
@@ -490,6 +504,5 @@ int main()
             system("cls");
         }
     }
-
     return 0;
 }
