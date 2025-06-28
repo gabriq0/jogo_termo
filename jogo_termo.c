@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <conio.h>
+#include <unistd.h>
 #include <ctype.h>
 #include <locale.h>
 
@@ -14,6 +14,44 @@
 #define cor_amarelo "\e[0;33m"
 #define cor_reset "\e[0m"
 
+//vai chamar o getch() caso o sistema seja Windows, ou usará algo semelhante em outros sistemas.
+#ifdef _WIN32
+    #include <conio.h>
+    int recebeTecla(){
+        return getch();
+    }
+#else
+    #include <termios.h>
+    #include <unistd.h>
+    int recebeTecla(){
+        struct termios oldt, newt;
+        int ch;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        ch = getchar();
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        return ch;
+    }
+#endif
+
+void limparTela(){
+    //essa função vai limpar a tela quando chamado.
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+}
+
+void strmin(char *str){
+    //essa função vai transformar uma string para letras minúsculas, para não ter problemas na checagem das letras.
+    for(int i = 0; str[i]; i++){
+        str[i] = tolower((unsigned char)str[i]);
+    }
+}
+
 typedef struct
 {
     char nome[10];
@@ -23,7 +61,7 @@ typedef struct
 
 Jogador jogador_info(){
     //essa função pega as informações do player!
-    system("cls");
+    limparTela();
     Jogador player;
     
     while(1){
@@ -67,18 +105,18 @@ Jogador jogador_info(){
             break;
         } else {
             printf("nome invalido ou alguém já usou ele, tente de novo!");
-            getch();
-            system("cls");
+            sleep(3);
+            limparTela();
         }
 
     }
-    system("cls");
+    limparTela();
     return player;
 }
 
 void mostrarRegras(){
     //aqui explica as regras e dicas sobre este jogo.
-    system("cls");
+    limparTela();
     printf("Cada rodada, você deve digitar uma palavra:\n\n");
     printf("se a letra estiver verde, ela está na palavra e na posição correta: \n");
     printf(cor_verde "t e " cor_vermelho "r m o");
@@ -100,8 +138,8 @@ void mostrarRegras(){
     printf("* Quando você salvar suas informações, apenas sua maior pontuação será salva.\n\n");
     printf("* O jogo não salva seus pontos automaticamente, você deve salvar pelo menu quando quiser atualizar suas informações.\n\n");
 
-    getch();
-    system("cls");
+    recebeTecla();
+    limparTela();
 }
 
 void atualizarPontos(Jogador *plr, int pontuacao){
@@ -111,22 +149,22 @@ void atualizarPontos(Jogador *plr, int pontuacao){
 
 void salvarJogador(const char *filename, Jogador *plr){
     //essa função atualiza as informações dos jogadores na lista geral com todos os players.
-    system("cls");
+    limparTela();
     
     FILE *file = fopen(filename, "r");
     FILE *temp = fopen("data/temp.dat", "w");
     
     if(!file){
         printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return;
     }
 
     if (!temp) {
         printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return;
     }
 
@@ -175,7 +213,7 @@ void salvarJogador(const char *filename, Jogador *plr){
     remove(filename);
     rename("data/temp.dat", filename);
 
-    system("cls");
+    limparTela();
 }
 
 char* gerarPalavra(char palavras[totalPalavras][100]){
@@ -184,8 +222,8 @@ char* gerarPalavra(char palavras[totalPalavras][100]){
     
     if(lista == NULL){
         printf("A lista de palavras não foi encontrada!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return NULL;
     }
 
@@ -206,7 +244,7 @@ char* gerarPalavra(char palavras[totalPalavras][100]){
 
 void jogoTermo(Jogador *plr){
     //essa função é o jogo inteiro.
-    system("cls");
+    limparTela();
     int gameloop = 0;
     char palavras[totalPalavras][100];
     int winStreak = 0, pontuacao=0, pts = 10;
@@ -231,8 +269,8 @@ void jogoTermo(Jogador *plr){
                 fflush(stdin);
                 printf("(%d | %d) ", tentativas, pontuacao);
                 printf("Digite alguma palavra: ");
-                scanf("%s", &guess);
-                strlwr(guess);
+                scanf("%s", guess);
+                strmin(guess);
 
                 if(strlen(guess) == strlen(termo)){
                     getchar();
@@ -312,34 +350,34 @@ void jogoTermo(Jogador *plr){
 
         //checa se o player ainda quer continuar (caso sim, seus pontos continuam)
         printf("\ndeseja repetir?(s/outro) ");
-        char r = tolower(getch());
+        char r = tolower(recebeTecla());
         printf("\n");
 
         if(r == 's')
         {
             if(check == 1) plr->tentativas++;
             gameloop = 0;
-            system("cls");
+            limparTela();
         }
         else
         {
             gameloop = 1;
-            system("cls");
+            limparTela();
         }
     }
 }
 
 void mostrarJogadores(const char *jogadores){
     //essa função serve para mostrar a lista com todos os jogadores.
-    system("cls");
+    limparTela();
     FILE *load = fopen(jogadores, "r");
     char linha[1000];
     int total=0;
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return;
     }
 
@@ -355,13 +393,14 @@ void mostrarJogadores(const char *jogadores){
     
     printf("\nTotal de jogadores: %d", total/2);
     printf("\n");
-    getch();
-    system("cls");
+    
+    recebeTecla();
+    limparTela();
 }
 
 void mostrarRanking(const char *jogadores, const char *ranking){
     //essa função vai mostrar o ranking com os 15 melhores jogadores.
-    system("cls");
+    limparTela();
     FILE *load = fopen(jogadores, "r");
     
     char nome[200][10], temp_str[10], ignorar[100], linha[100];
@@ -370,8 +409,8 @@ void mostrarRanking(const char *jogadores, const char *ranking){
 
     if(load == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return;
     }
 
@@ -405,8 +444,8 @@ void mostrarRanking(const char *jogadores, const char *ranking){
 
     if(write == NULL){
         printf("Não foi possivel abrir o arquivo!\n");
-        getch();
-        system("cls");
+        sleep(3);
+        limparTela();
         return;
     }
 
@@ -421,13 +460,14 @@ void mostrarRanking(const char *jogadores, const char *ranking){
     fclose(write);
 
     printf("\n");
-    getch();
-    system("cls");
+    
+    recebeTecla();
+    limparTela();
 }
 
 void mostrarInformacoes(const Jogador *plr){
     //essa função mostra as informações do player atual.
-    system("cls");
+    limparTela();
     
     printf("Jogador(a): %s\n", plr->nome);
     printf("\n=============================================\n\n");
@@ -445,8 +485,8 @@ void mostrarInformacoes(const Jogador *plr){
     int segundos = total % 60;
     printf("você jogou por %02d:%02d", min, segundos);
     
-    getch();
-    system("cls");
+    recebeTecla();
+    limparTela();
 }
 
 int main(){
@@ -475,24 +515,24 @@ int main(){
         printf("5 - Trocar de Jogador\n");
         printf("6 - Sair do Jogo\n");
 
-        char r = getch();
+        char r = recebeTecla();
 
         if(r == '1') jogoTermo(&playerAtual);
         else if(r == '2') mostrarRegras();
         else if(r == '3'){
-            system("cls");
+            limparTela();
             printf("Escolha uma opção: \n\n");
             printf("1 - Ver estatísticas pessoais\n");
             printf("2 - Ver lista de todos os jogadores\n");
             printf("3 - Ver ranking dos 15 melhores jogadores\n");
 
-            char resp = getch();
+            char resp = recebeTecla();
             if(resp == '1') mostrarInformacoes(&playerAtual);
             else if(resp == '2') mostrarJogadores("data/jogadores.dat");
             else if(resp == '3') mostrarRanking("data/jogadores.dat", "data/ranking.dat");
             else{
                 menuloop = 0;
-                system("cls");
+                limparTela();
             }
         }
         else if(r == '4') salvarJogador("data/jogadores.dat", &playerAtual);
@@ -501,7 +541,7 @@ int main(){
         else
         {
             menuloop = 0;
-            system("cls");
+            limparTela();
         }
     }
     return 0;
