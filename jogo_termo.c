@@ -22,17 +22,16 @@
     }
 #else
     #include <termios.h>
-    #include <unistd.h>
     int recebeTecla(){
-        struct termios oldt, newt;
-        int ch;
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        ch = getchar();
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-        return ch;
+        struct termios oldt, newt; //vai criar duas variáveis do tipo "termios". oldt = "old terminal" e newt = "new terminal" (basicamente uma variável temporária)
+        int ch; //é a variável que vai receber o valor ascii do caráctere digitado.
+        tcgetattr(STDIN_FILENO, &oldt); //vai pegar as configurações associadas ao primeiro valor (stdin = teclado), e atribuir à "oldt".
+        newt = oldt; //vai copiar o que foi atribuido à oldt e passar para newt.
+        newt.c_lflag &= ~(ICANON | ECHO); //vai modificar "newt" para que não seja necessário digitar enter após digitar uma tecla, e para que não apareça a tecla na tela.
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt); //vai colocar as configurações do "newt" para o terminal imediatamente.
+        ch = getchar(); //vai receber uma tecla digitada pelo usuário.
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt); //vai voltar as configurações iniciais.
+        return ch; //vai retornar o valor da tecla em ascii.
     }
 #endif
 
